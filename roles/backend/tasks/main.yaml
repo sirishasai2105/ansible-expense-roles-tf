@@ -1,0 +1,71 @@
+- name: Disabling node js
+  ansible.builtin.command: dnf module disable nodejs -y
+
+- name: enabling nodejs 20 version
+  ansible.builtin.command: dnf module enable nodejs:20 -y
+
+- name: install nodejs
+  ansible.builtin.package:
+    name: nodejs
+    state: installed
+
+- name: install mysql
+  ansible.builtin.package:
+    name: mysql
+    state: installed
+
+- name: adding the expense user
+  ansible.builtin.user:
+    name: expense
+    state: present
+  tags:
+  - deployment
+
+# - name: importing ansible roles
+#   ansible.builtin.import_roles:
+#     name: common
+#     tasks_from: app_pre_req
+
+- name: import tasks from common role
+  ansible.builtin.import_role:
+    name: common
+    tasks_from: app-pre-req
+  tags:
+  - dependencies
+
+- name: installing the dependancies
+  ansible.builtin.command: npm install
+  args:
+    chdir: /app
+
+
+- name: copy backend service
+  ansible.builtin.template:
+    src: backend.service.j2
+    dest: /etc/systemd/system/backend.service
+  tags:
+    dependencies
+
+- name: ansible to install pymysql
+  ansible.builtin.pip:
+    name:
+      - PyMySQL
+      - cryptography
+    executable: pip3.9
+  tags:
+    -deployment
+
+- name: connecting to mysql
+  community.mysql.mysql_db:
+    login_host: "{{ login_host }}"
+    login_password: "{{ login_password }}"
+    login_user: root
+    target: /app/schema/backend.sql
+    state: import
+    name: all
+
+- name: daemon reload 
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+    state: restarted
+    name: backend

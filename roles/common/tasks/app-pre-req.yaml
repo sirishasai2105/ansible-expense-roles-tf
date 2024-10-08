@@ -1,0 +1,21 @@
+  - name: remove the default content
+    ansible.builtin.file:
+      path: "{{ app_location }}"
+      state: absent
+    ignore_errors: true
+
+  - name: creating the html directory
+    ansible.builtin.file:
+      path: "{{ app_location }}"
+      state: directory
+
+  - name: "download the {{ component }} code"
+    ansible.builtin.get_url:
+      url: "https://expense-builds.s3.us-east-1.amazonaws.com/expense-{{ component }}-v2.zip"
+      dest: /tmp/frontend.zip
+
+  - name: extract the {{ component }} content
+    ansible.builtin.unarchive:
+      src: /tmp/frontend.zip
+      dest:  "{{ app_location }}"
+      remote_src: yes

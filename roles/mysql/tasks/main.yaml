@@ -1,0 +1,27 @@
+    - name: installing mysql-server
+      ansible.builtin.package:
+        name: mysql-server
+        state: installed
+    
+    - name: starting mysql - server
+      ansible.builtin.service:
+        name: mysqld
+        state: started
+        enabled: yes
+
+    - name: logging through root password before setting up
+      community.mysql.mysql_db:
+        login_user: root
+        login_password: "{{ login_password }}"
+        login_host: "{{ login_host }}"
+      ignore_errors: true
+      register: mysql_info
+
+    - name: printing mysql information
+      ansible.builtin.debug:
+        msg: "{{ mysql_info }}"
+
+    - name: setting up root password
+      ansible.builtin.command: "mysql_secure_installation --set-root-pass {{ login_password }}"
+      when: mysql_info.failed is true
+
